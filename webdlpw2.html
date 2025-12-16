@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progressive Form Validation</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f2f5; padding: 40px; }
+        .form-container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        
+        /* Progress Slider Styles */
+        .progress-container { display: flex; justify-content: space-between; margin-bottom: 30px; position: relative; }
+        .progress-container::before { content: ""; background-color: #e0e0e0; position: absolute; top: 50%; left: 0; transform: translateY(-50%); height: 4px; width: 100%; z-index: 1; }
+        .step-circle { width: 35px; height: 35px; background-color: #fff; border: 3px solid #e0e0e0; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2; font-weight: bold; transition: 0.4s; color: #999; }
+        .step-circle.active { border-color: #007bff; color: #007bff; transform: scale(1.1); }
+        .step-circle.completed { background-color: #007bff; border-color: #007bff; color: white; }
+
+        /* Step Visibility & Smooth Transitions */
+        .step { display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
+        .step.active { display: block; opacity: 1; }
+
+        /* Form Styling */
+        input[type="text"], input[type="email"], input[type="password"] { width: 100%; padding: 12px; margin: 10px 0 20px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .button-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        .btn-next { background-color: #007bff; color: white; }
+        .btn-back { background-color: #6c757d; color: white; }
+        button:hover { opacity: 0.9; }
+
+        #messageDisplay { margin-top: 20px; padding: 10px; border-radius: 6px; font-size: 14px; text-align: center; }
+        fieldset { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        legend { font-weight: bold; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <div class="progress-container" id="progressSlider">
+        <div class="step-circle active" id="circle1">1</div>
+        <div class="step-circle" id="circle2">2</div>
+        <div class="step-circle" id="circle3">3</div>
+    </div>
+
+    <div id="messageDisplay"></div>
+
+    <form id="registrationForm">
+        <div class="step active" id="step1">
+            <label>Full Name</label>
+            <input type="text" id="fullName" placeholder="John Doe">
+            <label>Email</label>
+            <input type="email" id="email" placeholder="john@example.com">
+            <div class="button-group">
+                <button type="button" class="btn-next" onclick="handleNext(1)">Next</button>
+            </div>
+        </div>
+
+        <div class="step" id="step2">
+            <label>Password (Min 6 chars)</label>
+            <input type="password" id="password" placeholder="******">
+            <label>Confirm Password</label>
+            <input type="password" id="confirmPassword" placeholder="******">
+            <div class="button-group">
+                <button type="button" class="btn-back" onclick="handleBack(1)">Back</button>
+                <button type="button" class="btn-next" onclick="handleNext(2)">Next</button>
+            </div>
+        </div>
+
+        <div class="step" id="step3">
+            <fieldset>
+                <legend>Gender</legend>
+                <label><input type="radio" name="gender" value="male"> Male</label>
+                <label><input type="radio" name="gender" value="female"> Female</label>
+            </fieldset>
+
+            <fieldset>
+                <legend>Hobbies</legend>
+                <label><input type="checkbox" name="hobby" value="code"> Coding</label><br>
+                <label><input type="checkbox" name="hobby" value="music"> Music</label>
+            </fieldset>
+            
+            <div class="button-group">
+                <button type="button" class="btn-back" onclick="handleBack(2)">Back</button>
+                <button type="submit" class="btn-next">Finish</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    const messageDisplay = document.getElementById('messageDisplay');
+
+    // Display messages with styles (Arrow Function)
+    const showFeedback = (msg, isError = true) => {
+        messageDisplay.textContent = msg;
+        messageDisplay.style.backgroundColor = isError ? '#fce8e8' : '#e8fce8';
+        messageDisplay.style.color = isError ? '#a94442' : '#3c763d';
+        if(isError) alert(msg);
+    };
+
+    // Update the visual state of the progress circles
+    const updateSlider = (stepNumber) => {
+        for (let i = 1; i <= 3; i++) {
+            const circle = document.getElementById(`circle${i}`);
+            if (i < stepNumber) {
+                circle.classList.add('completed');
+                circle.classList.remove('active');
+                circle.innerHTML = '✓'; // Show checkmark for finished steps
+            } else if (i === stepNumber) {
+                circle.classList.add('active');
+                circle.classList.remove('completed');
+                circle.innerHTML = i;
+            } else {
+                circle.classList.remove('active', 'completed');
+                circle.innerHTML = i;
+            }
+        }
+    };
+
+    // Validation Logic for Step 1
+    const validateStep1 = () => {
+        const name = document.getElementById('fullName').value.trim();
+        const email = document.getElementById('email').value.trim();
+        if (!name || !email) return "Name and Email are required.";
+        if (!email.includes('@') || !email.includes('.')) return "Valid Email required.";
+        return null;
+    };
+
+    // Validation Logic for Step 2
+    const validateStep2 = () => {
+        const pass = document.getElementById('password').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        if (pass.length < 6) return "Password must be 6+ characters.";
+        if (pass !== confirm) return "Passwords do not match.";
+        return null;
+    };
+
+    // Navigation: Next
+    const handleNext = (currentStep) => {
+        let error = null;
+        if (currentStep === 1) error = validateStep1();
+        if (currentStep === 2) error = validateStep2();
+
+        if (error) {
+            showFeedback(error);
+        } else {
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep + 1}`).classList.add('active');
+            showFeedback("", false); // Clear errors
+            updateSlider(currentStep + 1);
+        }
+    };
+
+    // Navigation: Back
+    const handleBack = (prevStep) => {
+        document.getElementById(`step${prevStep + 1}`).classList.remove('active');
+        document.getElementById(`step${prevStep}`).classList.add('active');
+        updateSlider(prevStep);
+    };
+
+    // Final Submit
+    document.getElementById('registrationForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const gender = document.querySelector('input[name="gender"]:checked');
+        const hobbies = document.querySelectorAll('input[name="hobby"]:checked');
+
+        if (!gender) return showFeedback("Please select a gender.");
+        if (hobbies.length === 0) return showFeedback("Select at least one hobby.");
+
+        updateSlider(4); // Visual "all done" state
+        showFeedback("Registration Successful!", false);
+    });
+</script>
+
+</body>
+</html>
